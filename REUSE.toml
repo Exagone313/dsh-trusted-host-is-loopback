@@ -1,0 +1,7 @@
+version = 1
+
+[[annotations]]
+path = ["package.json", "deno.json", ".gitignore"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Elouan Martinet <exa@elou.world>"
+SPDX-License-Identifier = "MIT"

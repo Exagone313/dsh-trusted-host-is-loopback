@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 Elouan Martinet <exa@elou.world>
+#
+# SPDX-License-Identifier: MIT
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+      - "[0-9]*.[0-9]*.[0-9]*-*"
+  # Re-run or trigger a release without pushing a tag. The version must still
+  # match package.json.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (must match package.json)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # sign the npm package with provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Node 24, not 22: npm trusted publishing needs npm 11.5+, which the
+      # Node 22 image does not carry.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Verify the version matches the tag
+        env:
+          # Passed through the environment, not interpolated into the script,
+          # so a crafted input or ref cannot inject shell code.
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${INPUT_VERSION:-$REF_NAME}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::release '$VERSION' does not match package.json version '$PKG_VERSION'"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Pack npm tarball
+        run: npm pack
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # A re-run must not fail on an already-published version.
+          if npm view "@exagone313/dsh-trusted-host-is-loopback@$VERSION" version > /dev/null 2>&1; then
+            echo "@exagone313/dsh-trusted-host-is-loopback@$VERSION is already on npm; skipping"
+            exit 0
+          fi
+          args="--access public"
+          if [[ "$VERSION" == *-* ]]; then args="$args --tag next"; fi
+          npm publish $args
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # A re-run must not fail on an existing release.
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            echo "release $VERSION already exists; skipping"
+            exit 0
+          fi
+          args=(--generate-notes)
+          if [[ "$VERSION" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "$VERSION" "${args[@]}"

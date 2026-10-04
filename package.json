@@ -1,0 +1,38 @@
+{
+  "name": "@exagone313/dsh-trusted-host-is-loopback",
+  "version": "1.0.0",
+  "description": "Workaround to make dsh web client treat trusted hosts as loopback.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Exagone313/dsh-trusted-host-is-loopback.git"
+  },
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "fmt": "deno fmt",
+    "fmt-check": "deno fmt --check"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

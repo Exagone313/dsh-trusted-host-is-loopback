@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Elouan Martinet <exa@elou.world>
+#
+# SPDX-License-Identifier: MIT
+
+- insert:
+    - id: trusted-host-is-loopback
+      name: '@exagone313/dsh-trusted-host-is-loopback'

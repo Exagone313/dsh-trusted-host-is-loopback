@@ -1,0 +1,6 @@
+{
+  "fmt": {
+    "include": ["**/*.md", "index.js"],
+    "exclude": ["node_modules", "*.tgz"]
+  }
+}
